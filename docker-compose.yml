@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: cv-explorer-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cv_explorer_user
+      POSTGRES_PASSWORD: cv_explorer_password
+      POSTGRES_DB: cv_explorer_db
+    ports:
+      - "5490:5432"  # Using port 5490 to avoid conflict with local postgres
+    volumes:
+      - postgres_data2:/var/lib/postgresql/data
+      - ./docker/postgres/init2.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - cv-explorer-network
+
+volumes:
+  postgres_data2:
+    driver: local
+
+networks:
+  cv-explorer-network:
+    driver: bridge
