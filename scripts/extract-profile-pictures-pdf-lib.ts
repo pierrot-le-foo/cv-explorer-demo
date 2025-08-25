@@ -30,8 +30,13 @@ class PDFImageExtractor {
       const pageRef = firstPage.ref;
       const pageDict = pdfDoc.context.lookup(pageRef);
       
+      if (!pageDict) {
+        console.log('ℹ️  No page dictionary found');
+        return [];
+      }
+      
       // Look for XObject resources (which include images)
-      const resources = pageDict.get('Resources');
+      const resources = (pageDict as any).get('Resources');
       if (!resources) {
         console.log('ℹ️  No resources found on page');
         return [];
@@ -53,24 +58,29 @@ class PDFImageExtractor {
           const xObject = xObjects.get(name);
           const xObjectRef = pdfDoc.context.lookup(xObject);
           
+          if (!xObjectRef) {
+            console.log(`   ${name}: XObject not found`);
+            continue;
+          }
+          
           // Check if this is an image XObject
-          const subtype = xObjectRef.get('Subtype');
+          const subtype = (xObjectRef as any).get('Subtype');
           if (subtype?.toString() !== '/Image') {
             console.log(`   ${name}: Not an image (${subtype})`);
             continue;
           }
           
-          const width = xObjectRef.get('Width')?.asNumber();
-          const height = xObjectRef.get('Height')?.asNumber();
-          const colorSpace = xObjectRef.get('ColorSpace');
-          const filter = xObjectRef.get('Filter');
+          const width = (xObjectRef as any).get('Width')?.asNumber();
+          const height = (xObjectRef as any).get('Height')?.asNumber();
+          const colorSpace = (xObjectRef as any).get('ColorSpace');
+          const filter = (xObjectRef as any).get('Filter');
           
           console.log(`   ${name}: Image ${width}x${height}, filter: ${filter}, colorSpace: ${colorSpace}`);
           
           // Only process reasonable sized images (likely profile pictures)
           if (width && height && width >= 50 && height >= 50 && width <= 500 && height <= 500) {
             // Extract the image data
-            const imageStream = xObjectRef.asStream();
+            const imageStream = (xObjectRef as any).asStream();
             const imageData = imageStream.contents;
             
             images.push({
@@ -86,7 +96,7 @@ class PDFImageExtractor {
           }
           
         } catch (error) {
-          console.log(`   ❌ Error processing XObject ${name}:`, error.message);
+          console.log(`   ❌ Error processing XObject ${name}:`, error instanceof Error ? error.message : 'Unknown error');
         }
       }
       
