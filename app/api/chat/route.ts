@@ -1,8 +1,21 @@
 import { searchVectors } from '@/lib/ai/vectors';
 import { semanticSearchResumes } from '@/lib/actions/resumes';
 import { openai } from '@ai-sdk/openai';
+import { anthropic } from '@ai-sdk/anthropic';
 import { streamText, UIMessage, convertToModelMessages, stepCountIs, tool, generateObject } from 'ai';
 import z from 'zod';
+
+// Helper function to get the appropriate model based on selection
+function getModel(modelId: string) {
+  switch (modelId) {
+    case 'gpt-4o':
+      return openai('gpt-4o');
+    case 'claude-opus-4-20250514':
+      return anthropic('claude-opus-4-20250514');
+    default:
+      return openai('gpt-4o'); // fallback to GPT-4o
+  }
+}
 
 // Schema for parsing user search queries into structured criteria
 const SearchCriteriaSchema = z.object({
@@ -31,10 +44,10 @@ const SearchCriteriaSchema = z.object({
 });
 
 // Parse user query into structured search criteria
-async function parseSearchQuery(query: string) {
+async function parseSearchQuery(query: string, modelId: string = 'gpt-4o') {
   try {
     const result = await generateObject({
-      model: openai('gpt-4o'),
+      model: getModel(modelId),
       schema: SearchCriteriaSchema,
       prompt: `Parse the following job search query into structured criteria. Extract only the information that is explicitly mentioned or clearly implied. If something is not mentioned, omit it from the response.
 
@@ -69,11 +82,12 @@ async function generateMatchAnalysis(
   parsedCriteria: unknown,
   resumeData: unknown,
   originalQuery: string,
-  semanticScore: number
+  semanticScore: number,
+  modelId: string = 'gpt-4o'
 ) {
   try {
     const analysisResult = await generateObject({
-      model: openai('gpt-4o'),
+      model: getModel(modelId),
       schema: z.object({
         percentage: z.number().min(0).max(100).describe("Overall match percentage"),
         explanation: z.string().describe("Brief explanation of why this candidate matches"),
@@ -134,10 +148,14 @@ Focus on practical relevance rather than perfect keyword matching.`,
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const { messages }: { messages: UIMessage[] } = await req.json();
+  const { messages, model: selectedModel }: { messages: UIMessage[], model?: string } = await req.json();
+  
+  // Use the selected model or fallback to GPT-4o
+  const modelId = selectedModel || 'gpt-4o';
+  const model = getModel(modelId);
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: model,
     messages: convertToModelMessages(messages),
     stopWhen: stepCountIs(5),
     system: `You are a helpful AI assistant specialized in CV/Resume screening and analysis. 
@@ -161,7 +179,7 @@ export async function POST(req: Request) {
           
           // Parse query into structured criteria if requested
           if (useStructuredSearch) {
-            parsedCriteria = await parseSearchQuery(query);
+            parsedCriteria = await parseSearchQuery(query, modelId);
             
             if (parsedCriteria) {
               // Convert structured criteria back to an enhanced search query
@@ -234,7 +252,7 @@ export async function POST(req: Request) {
             }
             
             // Generate detailed match analysis
-            const matchAnalysis = await generateMatchAnalysis(parsedCriteria, resumeData, query, rawScore);
+            const matchAnalysis = await generateMatchAnalysis(parsedCriteria, resumeData, query, rawScore, modelId);
             
             return {
               id: resume.id,

@@ -142,6 +142,56 @@ pnpm dev
 
 Visit `http://localhost:3000` to access the application.
 
+## 📥 Bulk Resume Import
+
+The project includes a powerful script to import all PDF resumes from the `public/resumes/` directory into the database:
+
+### Import Script Usage
+
+```bash
+# Import all PDFs from public/resumes/ directory
+npx tsx scripts/import-all-resumes.ts
+
+# Show help information
+npx tsx scripts/import-all-resumes.ts --help
+```
+
+### Import Process
+The script automatically:
+1. **Scans** all PDF files in `public/resumes/`
+2. **Extracts** text content using the same logic as the upload API
+3. **Processes** each resume with Claude AI for structured parsing
+4. **Stores** in PostgreSQL with vector embeddings for semantic search
+5. **Reports** detailed progress and summary statistics
+
+### Import Output Example
+```
+🚀 Starting bulk resume import...
+📁 Scanning directory: /path/to/public/resumes
+📄 Found 12 PDF files to process
+
+📋 [1/12] Processing: john_doe_resume.pdf
+   🔍 Reading file: /path/to/public/resumes/john_doe_resume.pdf
+   ✅ File read successfully (0.85 MB)
+   📖 Extracting text from PDF...
+   ✅ Text extraction successful (15,234 characters)
+   🤖 Processing with AI and saving to database...
+   ✅ Successfully processed: John Doe - Senior Software Engineer [abc123]
+
+================================================================================
+📊 IMPORT SUMMARY
+================================================================================
+📅 Completed at: 2025-08-25T10:30:45.123Z
+⏱️  Total time: 45.67 seconds
+📄 Total files: 12
+✅ Successfully imported: 11
+❌ Failed: 1
+⏭️  Skipped: 0
+🎉 All files processed successfully!
+```
+
+This script is essential for initial data setup and bulk resume processing.
+
 ## 📊 Resume Generation
 
 The resume dataset was generated using a Python script running in Google Colab:

@@ -1,0 +1,6 @@
+{
+  "scripts": {
+    "import-resumes": "tsx scripts/import-all-resumes.ts",
+    "import-resumes:help": "tsx scripts/import-all-resumes.ts --help"
+  }
+}

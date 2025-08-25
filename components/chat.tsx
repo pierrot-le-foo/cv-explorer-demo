@@ -124,6 +124,8 @@ const Chat = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
+  const [model, setModel] = useState<string>(models[0].id);
+
   const { messages, sendMessage, status, regenerate } = useChat({
     messages: [
       {
@@ -137,9 +139,16 @@ const Chat = () => {
         ],
       },
     ],
+    fetch: async (input, init) => {
+      // Add the model to the request body
+      if (init?.body) {
+        const body = JSON.parse(init.body as string);
+        body.model = model;
+        init.body = JSON.stringify(body);
+      }
+      return fetch(input, init);
+    },
   });
-
-  const [model, setModel] = useState<string>(models[0].id);
 
   const handleUpload = async (file: File) => {
     try {

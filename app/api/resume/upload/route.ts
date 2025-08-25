@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { addResume } from "@/lib/actions/resumes";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
+import pdf from 'pdf-parse';
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
@@ -52,23 +53,28 @@ export async function POST(request: NextRequest) {
       readTime: `${fileReadTime}ms`,
     });
     
-    // TODO: Implement proper PDF parsing using a library like pdf-parse
-    // For demonstration, we'll try to read as text, but this won't work for most PDFs
-    // Install pdf-parse: npm install pdf-parse @types/pdf-parse
-    // Then use: const pdfData = await pdf(buffer); resumeText = pdfData.text;
-    console.log(`📖 [${requestId}] Attempting to extract text from PDF...`);
+    // Extract text from PDF using proper PDF parsing library
+    console.log(`📖 [${requestId}] Extracting text from PDF using pdf-parse...`);
     const textExtractionStartTime = Date.now();
     let resumeText: string;
     try {
-      // Extract text from PDF buffer and clean it for database storage
-      const rawText = buffer.toString('utf-8');
+      // Use pdf-parse to properly extract text from PDF
+      const pdfData = await pdf(buffer);
+      const rawText = pdfData.text;
       
-      // Clean the text to remove null bytes and other problematic characters
+      console.log(`� [${requestId}] PDF metadata:`, {
+        pages: pdfData.numpages,
+        title: pdfData.info?.Title || 'No title',
+        rawTextLength: rawText.length,
+      });
+      
+      // Clean the extracted text to remove problematic characters
       // that can cause PostgreSQL UTF-8 encoding errors
       resumeText = rawText
         .replace(/\0/g, '') // Remove null bytes (0x00)
         .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Remove other control characters
         .replace(/\uFFFD/g, '') // Remove replacement characters (invalid UTF-8)
+        .replace(/\s+/g, ' ') // Normalize whitespace
         .trim();
       
       const textExtractionTime = Date.now() - textExtractionStartTime;
@@ -79,13 +85,13 @@ export async function POST(request: NextRequest) {
       });
     } catch (error) {
       const textExtractionTime = Date.now() - textExtractionStartTime;
-      console.log(`⚠️  [${requestId}] Direct text conversion failed, using placeholder content:`, {
+      console.log(`⚠️  [${requestId}] PDF parsing failed:`, {
         extractionTime: `${textExtractionTime}ms`,
         error: error instanceof Error ? error.message : "Unknown error",
       });
-      // If direct text conversion fails, use a placeholder
-      // In production, implement proper PDF parsing here
-      resumeText = `Resume content from ${file.name} - PDF parsing would be implemented here with a proper PDF parser library like pdf-parse`;
+      
+      // Fallback for problematic PDFs
+      resumeText = `Resume content from ${file.name} - PDF parsing failed, please check the file format. This is a placeholder that will be processed by AI to extract any available information.`;
     }
 
     if (!resumeText.trim()) {
