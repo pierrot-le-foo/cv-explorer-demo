@@ -128,10 +128,28 @@ async function importAllResumes(): Promise<void> {
         
         const processingTime = Date.now() - fileStartTime;
         
+        // Validate that we extracted a proper name (skip if name is "Unknown" or similar)
+        const extractedName = resume.cmetadata.name as string;
+        const extractedTitle = resume.cmetadata.title as string;
+        
+        if (!extractedName || 
+            extractedName.toLowerCase().includes('unknown') || 
+            extractedName.toLowerCase().includes('no name') ||
+            extractedName.trim() === '' ||
+            extractedName.length < 2) {
+          result.status = 'skipped';
+          result.error = `Invalid name extracted: "${extractedName}" - AI could not identify a proper person name`;
+          result.processingTime = processingTime;
+          console.log(`   ⏭️  Skipping: ${result.error}`);
+          skippedCount++;
+          results.push(result);
+          continue;
+        }
+        
         result.status = 'success';
         result.resumeId = resume.id;
-        result.name = resume.cmetadata.name as string;
-        result.title = resume.cmetadata.title as string;
+        result.name = extractedName;
+        result.title = extractedTitle;
         result.processingTime = processingTime;
         
         console.log(`   ✅ Successfully processed:`, {

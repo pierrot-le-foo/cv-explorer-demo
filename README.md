@@ -1,5 +1,7 @@
 # CV Explorer - AI-Powered Resume Screening Application
 
+https://github.com/pierrot-le-foo/cv-explorer-demo
+
 An intelligent resume screening application built with Next.js 15, featuring AI-powered chat interactions and semantic search capabilities. This project demonstrates a complete RAG (Retrieval-Augmented Generation) pipeline for processing and querying resume data.
 
 ## 🎯 Project Overview
