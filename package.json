@@ -20,7 +20,7 @@
     "@ai-sdk/openai": "^2.0.19",
     "@ai-sdk/react": "^2.0.22",
     "@langchain/community": "^0.3.53",
-    "@langchain/core": "^0.3.72",
+    "@langchain/core": "^0.3.80",
     "@langchain/openai": "^0.6.9",
     "@prisma/client": "^6.14.0",
     "@prisma/extension-accelerate": "^2.0.2",
